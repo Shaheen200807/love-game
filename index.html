@@ -377,29 +377,27 @@ function g2Shoot() {
   const hx = g2State.heartX;
   const hy = g2State.heartY;
 
-  // Вычислим "честный" вектор к сердцу
   const dx = hx - gx;
   const dy = hy - gy;
   const dist = Math.sqrt(dx*dx + dy*dy);
   const speed = 7;
-  const honestVX = (dx / dist) * speed;
-  const honestVY = (dy / dist) * speed;
-
-  let bulletVX, bulletVY;
+  
+  let bulletVX = (dx / dist) * speed;
+  let bulletVY = (dy / dist) * speed;
 
   if (isSpecial) {
-    // Аиша/Змейка/Шахина — ВСЕГДА попадёт, даже если пуля «не туда»
-    // Пуля летит криво, но всё равно притянется к сердцу
-    bulletVX = honestVX + (Math.random() - 0.5) * 6; // с отклонением
-    bulletVY = honestVY;
-    g2State.homing = true; // магнит к сердцу
+    // Режим для Аиши: пуля сама наводится на цель
+    g2State.homing = true;
+    g2State.heartEscape = false;
   } else {
-    // Чужая девушка — пуля летит ПРЯМО, но... сердце уйдёт в сторону
-    bulletVX = honestVX;
-    bulletVY = honestVY;
+    // Режим для всех остальных:
     g2State.homing = false;
-    // Сердце начнёт уходить
-    g2State.heartEscape = true;
+    g2State.heartEscape = true; // Сердце убегает
+    
+    // ДОБАВЛЯЕМ ХИТРОСТЬ: отклоняем пулю специально, 
+    // чтобы она летела чуть левее или правее центра
+    const deviation = 15; // угол отклонения
+    bulletVX += (Math.random() > 0.5 ? 2 : -2); 
   }
 
   g2State.bullet = { x: gx, y: gy, vx: bulletVX, vy: bulletVY };
@@ -431,13 +429,12 @@ function g2Loop() {
     if (s.gunX > canvas.width - 30 || s.gunX < 30) s.gunDir *= -1;
   }
 
-  // ── Сердце убегает (для чужой девушки) ──
+  // ── Сердце убегает (для чужих) ──
   if (s.heartEscape && s.bullet) {
     const bx = s.bullet.x, by = s.bullet.y;
     const dx = bx - s.heartX, dy = by - s.heartY;
     const dist = Math.sqrt(dx*dx + dy*dy);
     if (dist < 160) {
-      // убегаем от пули
       s.heartX -= (dx / dist) * 3.5;
       s.heartY -= (dy / dist) * 3.5;
       s.heartX = Math.max(40, Math.min(canvas.width - 40, s.heartX));
@@ -449,7 +446,7 @@ function g2Loop() {
   const pulse = 1 + Math.sin(s.heartPulse) * 0.08;
   drawHeart(ctx, s.heartX, s.heartY, 36 * pulse, '#ff4d6d');
 
-  // ── Прицел (пунктир от пушки до сердца) ──
+  // ── Прицел ──
   if (!s.shot) {
     ctx.setLineDash([6, 8]);
     ctx.strokeStyle = 'rgba(255,180,100,0.3)';
@@ -467,13 +464,11 @@ function g2Loop() {
   // ── Двигаем пулю ──
   if (s.bullet && s.result === null) {
     if (s.homing) {
-      // Магнит к сердцу
       const dx = s.heartX - s.bullet.x;
       const dy = s.heartY - s.bullet.y;
       const dist = Math.sqrt(dx*dx + dy*dy);
       s.bullet.vx += (dx / dist) * 0.6;
       s.bullet.vy += (dy / dist) * 0.6;
-      // ограничим скорость
       const spd = Math.sqrt(s.bullet.vx**2 + s.bullet.vy**2);
       if (spd > 9) { s.bullet.vx = s.bullet.vx/spd*9; s.bullet.vy = s.bullet.vy/spd*9; }
     }
@@ -491,12 +486,18 @@ function g2Loop() {
     ctx.fill();
     ctx.shadowBlur = 0;
 
-    // Проверка попадания
+    // ── ПРОВЕРКА ПОПАДАНИЯ (ИЗМЕНЕНО) ──
     const ddx = s.bullet.x - s.heartX;
     const ddy = s.bullet.y - s.heartY;
-    if (Math.sqrt(ddx*ddx + ddy*ddy) < 38) {
-      s.result = 'win';
-      showG2Result(true);
+    const currentDist = Math.sqrt(ddx*ddx + ddy*ddy);
+
+    if (currentDist < 38) {
+      // Только если имя верное, засчитываем победу
+      if (isSpecial) {
+        s.result = 'win';
+        showG2Result(true);
+      } 
+      // Если имя другое — пуля просто летит сквозь сердце дальше
     }
 
     // Вылетела за пределы
@@ -507,7 +508,7 @@ function g2Loop() {
     }
   }
 
-  // Результат прямо на канвасе
+  // Результат
   if (s.result === 'win') {
     ctx.font = 'bold 36px Nunito';
     ctx.fillStyle = '#86efac';
@@ -521,22 +522,6 @@ function g2Loop() {
   }
 
   s.animId = requestAnimationFrame(g2Loop);
-}
-
-function drawHeart(ctx, x, y, size, color) {
-  ctx.save();
-  ctx.translate(x, y);
-  ctx.fillStyle = color;
-  ctx.shadowColor = color;
-  ctx.shadowBlur = 20;
-  ctx.beginPath();
-  const s = size / 30;
-  ctx.moveTo(0, -10 * s);
-  ctx.bezierCurveTo( 15*s, -25*s,  30*s,  -5*s,  0,  20*s);
-  ctx.bezierCurveTo(-30*s,  -5*s, -15*s, -25*s,  0, -10*s);
-  ctx.fill();
-  ctx.shadowBlur = 0;
-  ctx.restore();
 }
 
 function drawGun(ctx, x, y) {

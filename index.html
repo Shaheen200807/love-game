@@ -368,8 +368,9 @@ function g2Reset() {
   g2Loop();
 }
 
+// Найди функцию g2Shoot и замени её на эту:
 function g2Shoot() {
-  if (g2State.shot) return;
+  if (g2State.shot || g2State.result !== null) return; // Не стрелять, если уже выстрелили или игра окончена
   g2State.shot = true;
 
   const gx = g2State.gunX;
@@ -382,26 +383,23 @@ function g2Shoot() {
   const dist = Math.sqrt(dx*dx + dy*dy);
   const speed = 7;
   
+  // Рассчитываем траекторию
   let bulletVX = (dx / dist) * speed;
   let bulletVY = (dy / dist) * speed;
 
   if (isSpecial) {
-    // Режим для Аиши: пуля сама наводится на цель
-    g2State.homing = true;
+    g2State.homing = true; // Магнит включается только для своих
     g2State.heartEscape = false;
   } else {
-    // Режим для всех остальных:
     g2State.homing = false;
-    g2State.heartEscape = true; // Сердце убегает
-    
-    // ДОБАВЛЯЕМ ХИТРОСТЬ: отклоняем пулю специально, 
-    // чтобы она летела чуть левее или правее центра
-    const deviation = 15; // угол отклонения
-    bulletVX += (Math.random() > 0.5 ? 2 : -2); 
+    g2State.heartEscape = true; // Для других сердце убегает
+    // Добавляем небольшое случайное отклонение для "чужих"
+    bulletVX += (Math.random() - 0.5) * 4;
   }
 
   g2State.bullet = { x: gx, y: gy, vx: bulletVX, vy: bulletVY };
 }
+
 
 function g2Loop() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);

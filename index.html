@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>💕 Love Games</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Pacifico&family=Nunito:wght@400;700;900&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Nunito', sans-serif;
+    background: #1a0010;
+    min-height: 100vh;
+    overflow-x: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff0f3;
+  }
+
+  /* ── ФОНОВЫЕ СЕРДЕЧКИ ── */
+  #hearts-bg {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    pointer-events: none;
+    z-index: 0;
+    overflow: hidden;
+  }
+  .bg-heart {
+    position: absolute;
+    bottom: -60px;
+    font-size: 22px;
+    opacity: 0;
+    animation: floatUp linear infinite;
+  }
+  @keyframes floatUp {
+    0%   { transform: translateY(0) rotate(-10deg); opacity: 0; }
+    10%  { opacity: 0.6; }
+    90%  { opacity: 0.4; }
+    100% { transform: translateY(-110vh) rotate(10deg); opacity: 0; }
+  }
+
+  /* ── ЭКРАНЫ ── */
+  .screen {
+    position: relative;
+    z-index: 1;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    min-height: 100vh;
+    padding: 20px;
+    gap: 24px;
+  }
+  .screen.active { display: flex; }
+
+  /* ── КАРТОЧКА ── */
+  .card {
+    background: rgba(255,77,109,0.1);
+    border: 2px solid rgba(255,77,109,0.35);
+    border-radius: 28px;
+    padding: 40px;
+    width: min(440px, 95vw);
+    text-align: center;
+    box-shadow: 0 20px 60px rgba(255,77,109,0.2);
+  }
+
+  h1 {
+    font-family: 'Pacifico', cursive;
+    font-size: clamp(2rem, 6vw, 3.5rem);
+    color: #ff4d6d;
+    text-shadow: 0 0 30px #ff4d6d88;
+  }
+  h2 {
+    font-family: 'Pacifico', cursive;
+    font-size: clamp(1.5rem, 4vw, 2.5rem);
+    color: #ff4d6d;
+    margin-bottom: 10px;
+  }
+  p { color: #ffb3c1; font-size: 1.05rem; }
+
+  label {
+    display: block;
+    color: #ff8fa3;
+    font-weight: 700;
+    font-size: 1.1rem;
+    margin-bottom: 12px;
+  }
+
+  input[type="text"] {
+    width: 100%;
+    padding: 13px 20px;
+    border-radius: 50px;
+    border: 2px solid rgba(255,77,109,0.5);
+    background: rgba(255,255,255,0.06);
+    color: white;
+    font-size: 1.15rem;
+    font-family: 'Nunito', sans-serif;
+    outline: none;
+    text-align: center;
+    margin-bottom: 20px;
+    transition: border-color 0.3s, box-shadow 0.3s;
+  }
+  input[type="text"]:focus {
+    border-color: #ff4d6d;
+    box-shadow: 0 0 20px rgba(255,77,109,0.4);
+  }
+  input::placeholder { color: rgba(255,255,255,0.25); }
+
+  .btn-row { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
+
+  .btn {
+    padding: 13px 34px;
+    border-radius: 50px;
+    border: none;
+    font-family: 'Nunito', sans-serif;
+    font-size: 1.1rem;
+    font-weight: 900;
+    cursor: pointer;
+    transition: transform 0.18s, box-shadow 0.18s;
+  }
+  .btn:hover { transform: translateY(-3px); }
+  .btn-pink  { background: linear-gradient(135deg,#ff4d6d,#c9184a); color:#fff; box-shadow:0 8px 22px rgba(255,77,109,0.5); }
+  .btn-green { background: linear-gradient(135deg,#22c55e,#15803d); color:#fff; box-shadow:0 8px 22px rgba(34,197,94,0.45); }
+  .btn-red   { background: linear-gradient(135deg,#ef4444,#991b1b); color:#fff; box-shadow:0 8px 22px rgba(239,68,68,0.45); }
+  .btn-gray  { background: rgba(255,255,255,0.1); color:#fff; border: 2px solid rgba(255,255,255,0.25); }
+
+  /* ── БОЛЬШОЕ СЕРДЦЕ ── */
+  .big-heart {
+    font-size: 90px;
+    animation: hbeat 1.1s ease-in-out infinite;
+    filter: drop-shadow(0 0 18px #ff4d6d);
+    line-height: 1;
+  }
+  @keyframes hbeat {
+    0%,100% { transform: scale(1); }
+    50%      { transform: scale(1.18); }
+  }
+
+  /* ── КНОПКА НЕТ — убегает ── */
+  #btn-no-g1 { position: relative; transition: left 0.05s, top 0.05s; }
+
+  /* ── ИГРА 2: СТРЕЛЬБА ── */
+  #game2-canvas {
+    border: 2px solid rgba(255,77,109,0.4);
+    border-radius: 16px;
+    display: block;
+    box-shadow: 0 0 40px rgba(255,77,109,0.3);
+    max-width: 95vw;
+  }
+
+  .result-msg {
+    font-size: 1.4rem;
+    font-weight: 900;
+    text-align: center;
+    padding: 16px 28px;
+    border-radius: 16px;
+    margin-top: 8px;
+  }
+  .result-win  { background: rgba(34,197,94,0.2);  color: #86efac; border: 2px solid #22c55e; }
+  .result-lose { background: rgba(239,68,68,0.15); color: #fca5a5; border: 2px solid #ef4444; }
+</style>
+</head>
+<body>
+
+<!-- ФОНОВЫЕ СЕРДЕЧКИ -->
+<div id="hearts-bg"></div>
+
+<!-- ══════════ ЭКРАН СТАРТ ══════════ -->
+<div class="screen active" id="screen-start">
+  <h1>💕 Love Games</h1>
+  <p>Введи своё имя и выбери игру</p>
+  <div class="card">
+    <label>Как тебя зовут?</label>
+    <input type="text" id="player-name" placeholder="Твоё имя...">
+    <div class="btn-row">
+      <button class="btn btn-pink" onclick="startGame(1)">🎮 Игра 1<br><small>Любишь меня?</small></button>
+      <button class="btn btn-pink" onclick="startGame(2)">🎯 Игра 2<br><small>Попади в сердце</small></button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ ИГРА 1 ══════════ -->
+<div class="screen" id="screen-game1">
+  <h2 id="g1-title">Игра 1</h2>
+  <div class="big-heart">❤️</div>
+  <div class="card" style="gap:16px; display:flex; flex-direction:column; align-items:center;">
+    <p id="g1-question" style="font-size:1.4rem; font-weight:900; color:white;">Ты любишь меня? 💕</p>
+    <div class="btn-row" id="g1-buttons" style="position:relative; width:100%; min-height:80px; justify-content:center; align-items:center;">
+      <button class="btn btn-green" id="btn-yes-g1" onclick="g1Answer('yes')">Да 💚</button>
+      <button class="btn btn-red"   id="btn-no-g1"  onmouseenter="g1RunNo()" onclick="g1ClickNo()">Нет ❌</button>
+    </div>
+    <div id="g1-result" class="result-msg" style="display:none;"></div>
+  </div>
+  <button class="btn btn-gray" onclick="goHome()">← Назад</button>
+</div>
+
+<!-- ══════════ ИГРА 2 ══════════ -->
+<div class="screen" id="screen-game2">
+  <h2 id="g2-title">Игра 2 — Попади в сердце! 🎯</h2>
+  <p id="g2-desc" style="color:#ffb3c1;">Нажми пробел или кнопку — выстрели!</p>
+  <canvas id="game2-canvas" width="480" height="380"></canvas>
+  <div id="g2-result" class="result-msg" style="display:none;"></div>
+  <div class="btn-row">
+    <button class="btn btn-pink" onclick="g2Shoot()">🔫 Выстрел!</button>
+    <button class="btn btn-gray" onclick="g2Reset()">🔄 Ещё раз</button>
+    <button class="btn btn-gray" onclick="goHome()">← Назад</button>
+  </div>
+</div>
+
+<script>
+// ════════════════════════════════
+//  НАСТРОЙКИ
+// ════════════════════════════════
+const SPECIAL_PHRASE = 'аиша змейка шахина';
+let playerName = '';
+let isSpecial   = false;
+
+// ── Создаём фоновые сердечки ──
+const bg = document.getElementById('hearts-bg');
+for (let i = 0; i < 28; i++) {
+  const h = document.createElement('div');
+  h.className = 'bg-heart';
+  h.textContent = ['❤️','💕','💖','💗','💓','🩷'][Math.floor(Math.random()*6)];
+  h.style.left     = Math.random() * 100 + 'vw';
+  h.style.fontSize = (14 + Math.random() * 22) + 'px';
+  h.style.animationDuration  = (6 + Math.random() * 10) + 's';
+  h.style.animationDelay     = (-Math.random() * 12) + 's';
+  bg.appendChild(h);
+}
+
+// ── Утилиты экранов ──
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+function goHome() { showScreen('screen-start'); }
+
+function startGame(n) {
+  const raw = document.getElementById('player-name').value.trim();
+  if (!raw) { alert('Введи своё имя! 💕'); return; }
+  playerName = raw;
+
+  // Проверяем, совпадает ли введенный текст полностью с нашей фразой
+  isSpecial = (playerName.toLowerCase() === SPECIAL_PHRASE);
+
+  if (n === 1) initGame1();
+  else          initGame2();
+}
+
+// ════════════════════════════════
+//  ИГРА 1 — «Любишь меня?»
+// ════════════════════════════════
+let g1NoClicks = 0;
+
+function initGame1() {
+  g1NoClicks = 0;
+  document.getElementById('g1-title').textContent = '💌 ' + playerName;
+  document.getElementById('g1-result').style.display = 'none';
+  resetNoBtn();
+  showScreen('screen-game1');
+}
+
+function resetNoBtn() {
+  const btn = document.getElementById('btn-no-g1');
+  btn.style.position  = 'relative';
+  btn.style.left      = '0px';
+  btn.style.top       = '0px';
+  btn.style.transform = '';
+  btn.disabled = false;
+}
+
+function g1RunNo() {
+  // Если имя специальное — кнопка «Нет» убегает
+  if (isSpecial) {
+    const btn = document.getElementById('btn-no-g1');
+    const wrap = document.getElementById('g1-buttons');
+    const wRect = wrap.getBoundingClientRect();
+    const bRect = btn.getBoundingClientRect();
+
+    // случайное смещение, но ограничим в пределах экрана
+    const maxX = Math.min(180, window.innerWidth  - bRect.right  + bRect.left - 10);
+    const maxY = Math.min(120, window.innerHeight - bRect.bottom + bRect.top  - 10);
+    const minX = Math.max(-180, -bRect.left + 10);
+    const minY = Math.max(-80,  -bRect.top  + 10);
+
+    const dx = minX + Math.random() * (maxX - minX);
+    const dy = minY + Math.random() * (maxY - minY);
+
+    btn.style.left = dx + 'px';
+    btn.style.top  = dy + 'px';
+  }
+}
+
+function g1ClickNo() {
+  if (isSpecial) {
+    // «Нет» убегает — пользователь не должна была нажать
+    // Если всё же нажала (touchscreen), просто ещё раз двигаем
+    g1RunNo();
+    return;
+  }
+  // Для чужой девушки — кнопку «Да» блокируем, «Нет» — правильный ответ
+  showG1Result(false); // для чужой «Нет» означает — она правильно нажала, но мы ей показываем:
+  const el = document.getElementById('g1-result');
+  el.textContent = '😢 Ты нажала «Нет»... Правильно, ты не моя!';
+  el.className = 'result-msg result-lose';
+  el.style.display = 'block';
+}
+
+function g1Answer(ans) {
+  const el = document.getElementById('g1-result');
+  el.style.display = 'block';
+
+  if (ans === 'yes') {
+    if (isSpecial) {
+      el.textContent = '💖 ДА! ' + playerName + ', я знал(а), что ты меня любишь! 💕✨';
+      el.className = 'result-msg result-win';
+    } else {
+      el.textContent = '😅 Эй, ты не та девушка! Нажимай «Нет»! 😂';
+      el.className = 'result-msg result-lose';
+    }
+  }
+}
+
+function showG1Result(win) {
+  // вспомогательная
+}
+
+// ════════════════════════════════
+//  ИГРА 2 — СТРЕЛЯЛКА В СЕРДЦЕ
+// ════════════════════════════════
+const canvas  = document.getElementById('game2-canvas');
+const ctx     = canvas.getContext('2d');
+
+let g2State = {
+  gunX: 240,    // позиция пушки (по X)
+  gunDir: 1,    // направление движения
+  bullet: null, // { x, y, vx, vy }
+  heartX: 240,
+  heartY: 80,
+  shot: false,
+  result: null, // 'win' | 'lose'
+  animId: null,
+  heartPulse: 0,
+};
+
+function initGame2() {
+  document.getElementById('g2-title').textContent =
+    '🎯 ' + playerName + ' — Попади в сердце!';
+  document.getElementById('g2-result').style.display = 'none';
+  g2Reset();
+  showScreen('screen-game2');
+}
+
+function g2Reset() {
+  cancelAnimationFrame(g2State.animId);
+  g2State = {
+    gunX: 240, gunDir: 1,
+    bullet: null, shot: false, result: null,
+    heartX: 240, heartY: 80, heartPulse: 0,
+    animId: null,
+  };
+  document.getElementById('g2-result').style.display = 'none';
+  g2Loop();
+}
+
+function g2Shoot() {
+  if (g2State.shot) return;
+  g2State.shot = true;
+
+  const gx = g2State.gunX;
+  const gy = canvas.height - 40;
+  const hx = g2State.heartX;
+  const hy = g2State.heartY;
+
+  // Вычислим "честный" вектор к сердцу
+  const dx = hx - gx;
+  const dy = hy - gy;
+  const dist = Math.sqrt(dx*dx + dy*dy);
+  const speed = 7;
+  const honestVX = (dx / dist) * speed;
+  const honestVY = (dy / dist) * speed;
+
+  let bulletVX, bulletVY;
+
+  if (isSpecial) {
+    // Аиша/Змейка/Шахина — ВСЕГДА попадёт, даже если пуля «не туда»
+    // Пуля летит криво, но всё равно притянется к сердцу
+    bulletVX = honestVX + (Math.random() - 0.5) * 6; // с отклонением
+    bulletVY = honestVY;
+    g2State.homing = true; // магнит к сердцу
+  } else {
+    // Чужая девушка — пуля летит ПРЯМО, но... сердце уйдёт в сторону
+    bulletVX = honestVX;
+    bulletVY = honestVY;
+    g2State.homing = false;
+    // Сердце начнёт уходить
+    g2State.heartEscape = true;
+  }
+
+  g2State.bullet = { x: gx, y: gy, vx: bulletVX, vy: bulletVY };
+}
+
+function g2Loop() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  // Фон
+  ctx.fillStyle = '#1a0010';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  // Мерцающая сетка
+  ctx.strokeStyle = 'rgba(255,77,109,0.07)';
+  ctx.lineWidth = 1;
+  for (let x = 0; x < canvas.width; x += 30) {
+    ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x, canvas.height); ctx.stroke();
+  }
+  for (let y = 0; y < canvas.height; y += 30) {
+    ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(canvas.width, y); ctx.stroke();
+  }
+
+  const s = g2State;
+  s.heartPulse += 0.07;
+
+  // ── Движение пушки ──
+  if (!s.shot) {
+    s.gunX += s.gunDir * 2.5;
+    if (s.gunX > canvas.width - 30 || s.gunX < 30) s.gunDir *= -1;
+  }
+
+  // ── Сердце убегает (для чужой девушки) ──
+  if (s.heartEscape && s.bullet) {
+    const bx = s.bullet.x, by = s.bullet.y;
+    const dx = bx - s.heartX, dy = by - s.heartY;
+    const dist = Math.sqrt(dx*dx + dy*dy);
+    if (dist < 160) {
+      // убегаем от пули
+      s.heartX -= (dx / dist) * 3.5;
+      s.heartY -= (dy / dist) * 3.5;
+      s.heartX = Math.max(40, Math.min(canvas.width - 40, s.heartX));
+      s.heartY = Math.max(40, Math.min(canvas.height - 100, s.heartY));
+    }
+  }
+
+  // ── Рисуем сердце ──
+  const pulse = 1 + Math.sin(s.heartPulse) * 0.08;
+  drawHeart(ctx, s.heartX, s.heartY, 36 * pulse, '#ff4d6d');
+
+  // ── Прицел (пунктир от пушки до сердца) ──
+  if (!s.shot) {
+    ctx.setLineDash([6, 8]);
+    ctx.strokeStyle = 'rgba(255,180,100,0.3)';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(s.gunX, canvas.height - 40);
+    ctx.lineTo(s.heartX, s.heartY);
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  // ── Рисуем пушку ──
+  drawGun(ctx, s.gunX, canvas.height - 40);
+
+  // ── Двигаем пулю ──
+  if (s.bullet && s.result === null) {
+    if (s.homing) {
+      // Магнит к сердцу
+      const dx = s.heartX - s.bullet.x;
+      const dy = s.heartY - s.bullet.y;
+      const dist = Math.sqrt(dx*dx + dy*dy);
+      s.bullet.vx += (dx / dist) * 0.6;
+      s.bullet.vy += (dy / dist) * 0.6;
+      // ограничим скорость
+      const spd = Math.sqrt(s.bullet.vx**2 + s.bullet.vy**2);
+      if (spd > 9) { s.bullet.vx = s.bullet.vx/spd*9; s.bullet.vy = s.bullet.vy/spd*9; }
+    }
+
+    s.bullet.x += s.bullet.vx;
+    s.bullet.y += s.bullet.vy;
+
+    // Рисуем пулю
+    ctx.beginPath();
+    ctx.arc(s.bullet.x, s.bullet.y, 6, 0, Math.PI*2);
+    ctx.fillStyle = '#ffb347';
+    ctx.fill();
+    ctx.shadowColor = '#ffb347';
+    ctx.shadowBlur = 12;
+    ctx.fill();
+    ctx.shadowBlur = 0;
+
+    // Проверка попадания
+    const ddx = s.bullet.x - s.heartX;
+    const ddy = s.bullet.y - s.heartY;
+    if (Math.sqrt(ddx*ddx + ddy*ddy) < 38) {
+      s.result = 'win';
+      showG2Result(true);
+    }
+
+    // Вылетела за пределы
+    if (s.bullet.x < -20 || s.bullet.x > canvas.width+20 ||
+        s.bullet.y < -20 || s.bullet.y > canvas.height+20) {
+      s.result = 'lose';
+      showG2Result(false);
+    }
+  }
+
+  // Результат прямо на канвасе
+  if (s.result === 'win') {
+    ctx.font = 'bold 36px Nunito';
+    ctx.fillStyle = '#86efac';
+    ctx.textAlign = 'center';
+    ctx.fillText('💖 ПОПАЛА! 💖', canvas.width/2, canvas.height/2);
+  } else if (s.result === 'lose') {
+    ctx.font = 'bold 30px Nunito';
+    ctx.fillStyle = '#fca5a5';
+    ctx.textAlign = 'center';
+    ctx.fillText('💨 Мимо...', canvas.width/2, canvas.height/2);
+  }
+
+  s.animId = requestAnimationFrame(g2Loop);
+}
+
+function drawHeart(ctx, x, y, size, color) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.fillStyle = color;
+  ctx.shadowColor = color;
+  ctx.shadowBlur = 20;
+  ctx.beginPath();
+  const s = size / 30;
+  ctx.moveTo(0, -10 * s);
+  ctx.bezierCurveTo( 15*s, -25*s,  30*s,  -5*s,  0,  20*s);
+  ctx.bezierCurveTo(-30*s,  -5*s, -15*s, -25*s,  0, -10*s);
+  ctx.fill();
+  ctx.shadowBlur = 0;
+  ctx.restore();
+}
+
+function drawGun(ctx, x, y) {
+  ctx.save();
+  ctx.translate(x, y);
+  // ствол (вверх)
+  ctx.fillStyle = '#ff8fa3';
+  ctx.beginPath();
+  ctx.roundRect(-5, -28, 10, 28, 4);
+  ctx.fill();
+  // корпус
+  ctx.fillStyle = '#c9184a';
+  ctx.beginPath();
+  ctx.roundRect(-14, -8, 28, 16, 6);
+  ctx.fill();
+  // искра если выстрел
+  if (g2State.shot && g2State.bullet && g2State.result === null) {
+    ctx.fillStyle = '#ffb347';
+    ctx.beginPath();
+    ctx.arc(0, -28, 5, 0, Math.PI*2);
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
+function showG2Result(win) {
+  const el = document.getElementById('g2-result');
+  el.style.display = 'block';
+  if (win) {
+    if (isSpecial) {
+      el.textContent = '💖 ' + playerName + ', ты попала прямо в моё сердце! 💕';
+      el.className = 'result-msg result-win';
+    } else {
+      // Не должна была попасть — но попала? Сердце убегало, значит это невозможно
+      el.textContent = '😮 Ой, как ты попала?! Это было чудо!';
+      el.className = 'result-msg result-lose';
+    }
+  } else {
+    if (isSpecial) {
+      el.textContent = '🤔 Промахнулась? Попробуй ещё раз, ' + playerName + '!';
+      el.className = 'result-msg result-lose';
+    } else {
+      el.textContent = '😌 Это сердце — не для тебя... 💔';
+      el.className = 'result-msg result-lose';
+    }
+  }
+}
+
+// Клавиша пробел = выстрел
+document.addEventListener('keydown', e => {
+  if (e.code === 'Space' && document.getElementById('screen-game2').classList.contains('active')) {
+    e.preventDefault();
+    g2Shoot();
+  }
+});
+</script>
+</body>
+</html>
